@@ -9,7 +9,8 @@ import {
   Dashboard as DashboardIcon,
   School as SchoolIcon,
 } from '@mui/icons-material';
-import LogoImage from '../assets/images/Luna.png';
+//import LogoImage from '../assets/images/captain_leo.png';
+import LogoImage from '@/assets/images/captain_leo.png';
 import { colors } from '../theme';
 
 const NavContainer = styled(AppBar)(({ theme }) => ({

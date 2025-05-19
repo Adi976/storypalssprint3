@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Box,
   Container,
@@ -19,6 +19,8 @@ import {
   LinearProgress,
   useTheme,
   useMediaQuery,
+  Alert,
+  CircularProgress,
 } from '@mui/material';
 import {
   Timeline as TimelineIcon,
@@ -33,6 +35,7 @@ import {
   AccessTime as AccessTimeIcon,
 } from '@mui/icons-material';
 import { styled } from '@mui/material/styles';
+import { analytics, users } from '../services/api';
 
 // Color palette
 const colors = {
@@ -72,29 +75,100 @@ const ProgressCard = styled(Paper)(({ theme }) => ({
   backgroundColor: colors.light,
 }));
 
+interface ChildStats {
+  storiesCreated: number;
+  readingTime: string;
+  vocabularyWords: number;
+  achievements: number;
+}
+
+interface Story {
+  title: string;
+  character: string;
+  date: string;
+}
+
+interface LearningProgress {
+  subject: string;
+  progress: number;
+}
+
 const ParentDashboard: React.FC = () => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
-
-  const [childStats] = useState({
-    storiesCreated: 12,
-    readingTime: '45 minutes',
-    vocabularyWords: 24,
-    achievements: 8,
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [childStats, setChildStats] = useState<ChildStats>({
+    storiesCreated: 0,
+    readingTime: '0 minutes',
+    vocabularyWords: 0,
+    achievements: 0,
   });
+  const [recentStories, setRecentStories] = useState<Story[]>([]);
+  const [learningProgress, setLearningProgress] = useState<LearningProgress[]>([]);
+  const [selectedChildId, setSelectedChildId] = useState<number | null>(null);
 
-  const [recentStories] = useState([
-    { title: 'Journey to the Moon', character: 'Luna', date: '2024-03-15' },
-    { title: 'Mystery in the Forest', character: 'Dodo', date: '2024-03-14' },
-    { title: 'Space Adventure', character: 'Captain Leo', date: '2024-03-13' },
-  ]);
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        setError('');
 
-  const [learningProgress] = useState([
-    { subject: 'Vocabulary', progress: 75 },
-    { subject: 'Creativity', progress: 85 },
-    { subject: 'Reading', progress: 65 },
-    { subject: 'Writing', progress: 70 },
-  ]);
+        // Get children first
+        const childrenResponse = await users.getChildren();
+        if (childrenResponse.data.length > 0) {
+          const childId = childrenResponse.data[0].id;
+          setSelectedChildId(childId);
+
+          // Get progress data
+          const progressResponse = await analytics.getProgress(childId);
+          const progressData = progressResponse.data;
+
+          // Update stats
+          setChildStats({
+            storiesCreated: progressData.storiesCreated || 0,
+            readingTime: `${progressData.readingTime || 0} minutes`,
+            vocabularyWords: progressData.vocabularyWords || 0,
+            achievements: progressData.achievements || 0,
+          });
+
+          // Update learning progress
+          setLearningProgress([
+            { subject: 'Vocabulary', progress: progressData.vocabularyProgress || 0 },
+            { subject: 'Creativity', progress: progressData.creativityProgress || 0 },
+            { subject: 'Reading', progress: progressData.readingProgress || 0 },
+            { subject: 'Writing', progress: progressData.writingProgress || 0 },
+          ]);
+
+          // Update recent stories
+          setRecentStories(progressData.recentStories || []);
+        }
+      } catch (error) {
+        const apiError = error as { response?: { data?: { message?: string } } };
+        setError(apiError.response?.data?.message || 'Failed to load dashboard data');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, []);
+
+  if (loading) {
+    return (
+      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh' }}>
+        <CircularProgress />
+      </Box>
+    );
+  }
+
+  if (error) {
+    return (
+      <Box sx={{ p: 3 }}>
+        <Alert severity="error">{error}</Alert>
+      </Box>
+    );
+  }
 
   return (
     <Box sx={{ py: 4, backgroundColor: colors.light, minHeight: '100vh' }}>

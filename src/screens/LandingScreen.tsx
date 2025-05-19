@@ -36,6 +36,7 @@ import {
   LinkedIn as LinkedInIcon,
 } from '@mui/icons-material';
 import ChatTest from '../components/ChatTest';
+import CharacterChat from '../components/CharacterChat';
 
 // Import images
 import LunaImage from '../assets/images/Luna.png';
@@ -236,6 +237,7 @@ const LandingScreen: React.FC = () => {
       isBot: true,
     },
   ]);
+  const [selectedCharacter, setSelectedCharacter] = useState<string | null>(null);
 
   useEffect(() => {
     setFadeIn(true);
@@ -256,28 +258,37 @@ const LandingScreen: React.FC = () => {
     }, 1000);
   };
 
-  const characters = [
-    {
-      name: 'Luna',
-      description: 'The friendly star fairy who knows all about space and dreams',
-      image: LunaImage,
-    },
-    {
-      name: 'Gogo',
-      description: 'A brave explorer with tales of adventure from distant lands',
-      image: GogoImage,
-    },
-    {
-      name: 'Dodo',
-      description: 'The curious friend who loves solving mysteries and riddles',
-      image: DodoImage,
-    },
-    {
-      name: 'Captain Leo',
-      description: 'A daring space captain who leads exciting cosmic adventures',
-      image: CaptainLeoImage,
-    },
-  ];
+  const characterModels = {
+    'Luna': 'luna:latest',
+    'Gogo': 'gogo:latest',
+    'Dodo': 'dodo:latest',
+    'Captain Leo': 'leo:latest'
+  };
+
+  const handleCharacterClick = (characterName: string) => {
+    setSelectedCharacter(characterName);
+  };
+
+  const renderCharacterChat = () => {
+    if (!selectedCharacter) return null;
+
+    const characterImages = {
+      'Luna': LunaImage,
+      'Gogo': GogoImage,
+      'Dodo': DodoImage,
+      'Captain Leo': CaptainLeoImage
+    };
+
+    return (
+      <Box sx={{ mt: 4, display: 'flex', justifyContent: 'center' }}>
+        <CharacterChat
+          characterName={selectedCharacter}
+          characterImage={characterImages[selectedCharacter as keyof typeof characterImages]}
+          modelName={characterModels[selectedCharacter as keyof typeof characterModels]}
+        />
+      </Box>
+    );
+  };
 
   return (
     <Box sx={{ overflowX: 'hidden' }}>
@@ -406,40 +417,52 @@ const LandingScreen: React.FC = () => {
       {/* Character Section */}
       <Box sx={{ py: 8, px: 2, backgroundColor: colors.light }}>
         <Container maxWidth="lg">
-          <Grid container spacing={4} justifyContent="center">
-            {characters.map((character, index) => (
-              <Grid item xs={12} sm={6} md={3} key={index}>
+          <Typography variant="h3" align="center" gutterBottom sx={{ color: colors.primary }}>
+            Meet Our Characters
+          </Typography>
+          <Grid container spacing={4} justifyContent="center" sx={{ mt: 4 }}>
+            {[
+              { name: 'Luna', image: LunaImage, description: 'The Star Fairy' },
+              { name: 'Gogo', image: GogoImage, description: 'The Adventure Guide' },
+              { name: 'Dodo', image: DodoImage, description: 'The Wise Owl' },
+              { name: 'Captain Leo', image: CaptainLeoImage, description: 'The Brave Explorer' }
+            ].map((character) => (
+              <Grid item xs={12} sm={6} md={3} key={character.name}>
                 <CharacterCard>
-                  <CharacterGlow className="character-glow" />
                   <CharacterImage
                     src={character.image}
                     alt={character.name}
                     className="character-image"
                   />
-                  <Typography
-                    variant="h5"
-                    sx={{
-                      color: colors.primary,
-                      fontWeight: 'bold',
-                      mb: 1,
-                    }}
-                  >
+                  <Typography variant="h6" gutterBottom sx={{ color: colors.primary }}>
                     {character.name}
                   </Typography>
-                  <Typography
-                    variant="body1"
-                    sx={{
-                      color: colors.dark,
-                      textAlign: 'center',
-                      lineHeight: 1.4,
-                    }}
-                  >
+                  <Typography variant="body2" color="textSecondary" sx={{ mb: 2 }}>
                     {character.description}
                   </Typography>
+                  <Button
+                    variant="contained"
+                    color="primary"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleCharacterClick(character.name);
+                    }}
+                    sx={{
+                      mt: 'auto',
+                      backgroundColor: colors.primary,
+                      '&:hover': {
+                        backgroundColor: colors.dark,
+                      },
+                    }}
+                  >
+                    Meet {character.name}
+                  </Button>
+                  <CharacterGlow className="character-glow" />
                 </CharacterCard>
               </Grid>
             ))}
           </Grid>
+          {renderCharacterChat()}
         </Container>
       </Box>
 

@@ -75,7 +75,7 @@ const AuthScreen: React.FC = () => {
         const { tokens } = response.data;
         localStorage.setItem('access_token', tokens.access_token);
         localStorage.setItem('refresh_token', tokens.refresh_token);
-        navigate('/dashboard');
+        navigate('/child-profile');
       }
     } catch (error) {
       const apiError = error as { response?: { data?: { message?: string } } };

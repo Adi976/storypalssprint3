@@ -1,32 +1,33 @@
 import React, { useState } from 'react';
-import { Box, TextField, Button, Typography, Radio, RadioGroup, FormControlLabel, FormControl, FormLabel, Select, MenuItem, CircularProgress } from '@mui/material';
+import { Box, TextField, Button, Typography, Radio, RadioGroup, FormControlLabel, FormControl, FormLabel, Select, MenuItem, CircularProgress, Alert } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
-import { childApi, ChildData } from '../services/api';
+import { users } from '../services/api';
 
 const ChildInfoScreen: React.FC = () => {
   const [name, setName] = useState('');
   const [age, setAge] = useState('');
-  const [gender, setGender] = useState('boy');
-  const [ageGroup, setAgeGroup] = useState('3-5');
-  const [interests, setInterests] = useState('');
+  const [gender, setGender] = useState('M');
+  const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
 
-  const handleSubmit = async () => {
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
     setIsLoading(true);
+    
     try {
-      const childData: ChildData = {
+      const childData = {
         name,
-        age,
+        age: parseInt(age),
         gender,
-        ageGroup,
-        interests: interests.split(',').map(i => i.trim()).join(', '),
       };
-      await childApi.createChild(childData);
-      navigate('/dashboard');
+      
+      await users.addChild(childData);
+      navigate('/'); // Redirect to homepage after successful creation
     } catch (error) {
-      console.error('Error creating child profile:', error);
-      // TODO: Show error message to user
+      const apiError = error as { response?: { data?: { message?: string } } };
+      setError(apiError.response?.data?.message || 'Failed to create child profile. Please try again.');
     } finally {
       setIsLoading(false);
     }
@@ -57,7 +58,13 @@ const ChildInfoScreen: React.FC = () => {
           This helps us personalize their learning experience
         </Typography>
 
-        <Box component="form" onSubmit={(e) => { e.preventDefault(); handleSubmit(); }}>
+        {error && (
+          <Alert severity="error" sx={{ mb: 2 }}>
+            {error}
+          </Alert>
+        )}
+
+        <Box component="form" onSubmit={handleSubmit}>
           <TextField
             fullWidth
             label="Child's Name"
@@ -65,6 +72,7 @@ const ChildInfoScreen: React.FC = () => {
             onChange={(e) => setName(e.target.value)}
             margin="normal"
             required
+            disabled={isLoading}
           />
 
           <TextField
@@ -75,6 +83,7 @@ const ChildInfoScreen: React.FC = () => {
             onChange={(e) => setAge(e.target.value)}
             margin="normal"
             required
+            disabled={isLoading}
             inputProps={{ min: 3, max: 12 }}
           />
 
@@ -85,39 +94,17 @@ const ChildInfoScreen: React.FC = () => {
               value={gender}
               onChange={(e) => setGender(e.target.value)}
             >
-              <FormControlLabel value="boy" control={<Radio />} label="Boy" />
-              <FormControlLabel value="girl" control={<Radio />} label="Girl" />
+              <FormControlLabel value="M" control={<Radio />} label="Male" disabled={isLoading} />
+              <FormControlLabel value="F" control={<Radio />} label="Female" disabled={isLoading} />
+              <FormControlLabel value="O" control={<Radio />} label="Other" disabled={isLoading} />
             </RadioGroup>
           </FormControl>
-
-          <FormControl fullWidth sx={{ mt: 2 }}>
-            <FormLabel>Age Group</FormLabel>
-            <Select
-              value={ageGroup}
-              onChange={(e) => setAgeGroup(e.target.value)}
-              required
-            >
-              <MenuItem value="3-5">3-5 years</MenuItem>
-              <MenuItem value="6-8">6-8 years</MenuItem>
-              <MenuItem value="9-12">9-12 years</MenuItem>
-            </Select>
-          </FormControl>
-
-          <TextField
-            fullWidth
-            label="Interests (comma separated)"
-            value={interests}
-            onChange={(e) => setInterests(e.target.value)}
-            margin="normal"
-            required
-            placeholder="e.g. space, dinosaurs, music, art"
-          />
 
           <Button
             fullWidth
             variant="contained"
             color="primary"
-            onClick={handleSubmit}
+            type="submit"
             disabled={isLoading}
             sx={{ mt: 4, py: 1.5 }}
           >

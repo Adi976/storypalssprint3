@@ -1,76 +1,90 @@
 import axios from 'axios';
 
-const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:8000',
-  headers: {
-    'Content-Type': 'application/json',
-  },
-});
-
-// Add a request interceptor to add the auth token to requests
-api.interceptors.request.use(
-  (config) => {
-    const token = localStorage.getItem('token');
-    if (token && config.headers) {
-      config.headers.Authorization = `Bearer ${token}`;
-    }
-    return config;
-  },
-  (error) => {
-    return Promise.reject(error);
-  }
-);
-
-// Add a response interceptor to handle token expiration
-api.interceptors.response.use(
-  (response) => response,
-  (error) => {
-    if (error.response?.status === 401) {
-      localStorage.removeItem('token');
-      window.location.href = '/login';
-    }
-    return Promise.reject(error);
-  }
-);
-
-export interface LoginData {
-  email: string;
-  password: string;
-}
-
-export interface RegisterData extends LoginData {}
-
 export interface AuthResponse {
   tokens: {
     access_token: string;
     refresh_token: string;
   };
   user: {
-    id: string;
+    id: number;
     email: string;
+    username: string;
   };
 }
 
-export interface ChildData {
-  name: string;
-  age: string;
-  gender: string;
-  ageGroup: string;
-  interests: string;
-}
+const API_URL = 'http://localhost:8000/api';
 
-export const authApi = {
-  login: (data: LoginData) => api.post<AuthResponse>('/auth/login', data),
-  register: (data: RegisterData) => api.post<AuthResponse>('/auth/register', data),
-  logout: () => {
-    localStorage.clear();
+const api = axios.create({
+  baseURL: API_URL,
+  withCredentials: true,
+  headers: {
+    'Content-Type': 'application/json',
   },
+});
+
+// Auth endpoints
+export const auth = {
+  login: (email: string, password: string) => 
+    api.post('/auth/login/', { email, password }),
+  register: (userData: any) => 
+    api.post('/auth/register/', userData),
+  logout: () => 
+    api.post('/auth/logout/'),
 };
 
-export const childApi = {
-  createChild: (data: ChildData) => api.post('/children', data),
-  getChildren: () => api.get('/children'),
-  getChild: (id: string) => api.get(`/children/${id}`),
+// User endpoints
+export const users = {
+  getProfile: () => 
+    api.get('/users/me/'),
+  updateProfile: (data: any) => 
+    api.put('/users/me/', data),
+  addChild: (childData: any) => {
+    const formData = new FormData();
+    Object.entries(childData).forEach(([key, value]) => {
+      formData.append(key, value as string);
+    });
+    return api.post('/children/', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+  },
+  getChildren: () => 
+    api.get('/children/'),
+  updateChild: (id: number, data: any) => 
+    api.put(`/children/${id}/`, data),
+  deleteChild: (id: number) => 
+    api.delete(`/children/${id}/`),
+};
+
+// Chat endpoints
+export const chat = {
+  getChats: () => 
+    api.get('/chats/'),
+  createChat: (data: any) => 
+    api.post('/chats/', data),
+  getMessages: (chatId: number) => 
+    api.get(`/messages/?chat=${chatId}`),
+  sendMessage: (chatId: number, content: string) => 
+    api.post(`/chats/${chatId}/send_message/`, { content }),
+  publicChat: (character: string, content: string) => 
+    api.post('/public-chat/', { character, content }),
+};
+
+// Story endpoints
+export const stories = {
+  getStories: (params?: { character?: string; category?: string }) => 
+    api.get('/stories/', { params }),
+  getStory: (id: number) => 
+    api.get(`/stories/${id}/`),
+};
+
+// Analytics endpoints
+export const analytics = {
+  getProgress: (childId: number) => 
+    api.get(`/progress/?child=${childId}`),
+  updateProgress: (childId: number, data: any) => 
+    api.post(`/progress/`, { child: childId, ...data }),
 };
 
 export default api; 
