@@ -1,178 +1,291 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import {
   Box,
   Container,
-  Typography,
   Grid,
+  Paper,
+  Typography,
   Card,
   CardContent,
-  Button,
-  Avatar,
-  IconButton,
-  Menu,
-  MenuItem,
+  LinearProgress,
+  useTheme,
 } from '@mui/material';
-import { Add as AddIcon, MoreVert as MoreVertIcon } from '@mui/icons-material';
-import { useNavigate } from 'react-router-dom';
-import api from '../services/api';
-
-interface Child {
-  id: string;
-  name: string;
-  age: number;
-  avatar: string;
-  readingLevel: string;
-  lastActivity: string;
-}
+import {
+  Timeline,
+  TimelineItem,
+  TimelineSeparator,
+  TimelineConnector,
+  TimelineContent,
+  TimelineDot,
+} from '@mui/lab';
+import {
+  Star as StarIcon,
+  TrendingUp as TrendingUpIcon,
+  AccessTime as AccessTimeIcon,
+  EmojiEvents as EmojiEventsIcon,
+} from '@mui/icons-material';
+import { mockDashboardStats, mockCharacters, mockAnalytics } from '../services/mockData';
+import {
+  LineChart,
+  Line,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+  ResponsiveContainer,
+} from 'recharts';
 
 const DashboardScreen: React.FC = () => {
-  const navigate = useNavigate();
-  const [children, setChildren] = useState<Child[]>([]);
-  const [loading, setLoading] = useState<boolean>(true);
-  const [error, setError] = useState<string>('');
-  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
-  const [selectedChild, setSelectedChild] = useState<string | null>(null);
+  const theme = useTheme();
 
-  useEffect(() => {
-    const fetchChildren = async (): Promise<void> => {
-      try {
-        const response = await api.get<Child[]>('/children');
-        setChildren(response.data);
-      } catch (err) {
-        setError('Failed to fetch children data');
-        console.error('Error fetching children:', err);
-      } finally {
-        setLoading(false);
-      }
-    };
+  // Prepare data for character distribution chart
+  const characterData = Object.entries(mockAnalytics.byCharacter).map(([name, data]) => ({
+    name,
+    messages: data.totalMessages,
+    duration: data.totalDuration,
+  }));
 
-    void fetchChildren();
-  }, []);
-
-  const handleMenuClick = (event: React.MouseEvent<HTMLElement>, childId: string): void => {
-    setAnchorEl(event.currentTarget);
-    setSelectedChild(childId);
-  };
-
-  const handleMenuClose = (): void => {
-    setAnchorEl(null);
-    setSelectedChild(null);
-  };
-
-  const handleAddChild = (): void => {
-    navigate('/add-child');
-  };
-
-  const handleViewProgress = (childId: string): void => {
-    navigate(`/child/${childId}/progress`);
-  };
-
-  const handleEditChild = (childId: string): void => {
-    navigate(`/child/${childId}/edit`);
-  };
-
-  const handleDeleteChild = async (childId: string): Promise<void> => {
-    try {
-      await api.delete(`/children/${childId}`);
-      setChildren(children.filter(child => child.id !== childId));
-    } catch (err) {
-      setError('Failed to delete child');
-      console.error('Error deleting child:', err);
-    }
-    handleMenuClose();
-  };
-
-  if (loading) {
-    return (
-      <Container>
-        <Typography>Loading...</Typography>
-      </Container>
-    );
-  }
+  // Prepare data for vocabulary and grammar scores
+  const scoreData = Object.entries(mockAnalytics.byCharacter).map(([name, data]) => ({
+    name,
+    vocabulary: data.avgVocabulary,
+    grammar: data.avgGrammar,
+  }));
 
   return (
-    <Container maxWidth="lg" sx={{ py: 4 }}>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 4 }}>
-        <Typography variant="h4" component="h1">
-          My Children
-        </Typography>
-        <Button
-          variant="contained"
-          startIcon={<AddIcon />}
-          onClick={handleAddChild}
-        >
-          Add Child
-        </Button>
-      </Box>
+    <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
+      <Typography variant="h4" gutterBottom>
+        Dashboard
+      </Typography>
 
-      {error && (
-        <Typography color="error" sx={{ mb: 2 }}>
-          {error}
-        </Typography>
-      )}
-
-      <Grid container spacing={3}>
-        {children.map((child) => (
-          <Grid item xs={12} sm={6} md={4} key={child.id}>
-            <Card>
-              <CardContent>
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                    <Avatar
-                      src={child.avatar}
-                      alt={child.name}
-                      sx={{ width: 56, height: 56 }}
-                    />
-                    <Box>
-                      <Typography variant="h6">{child.name}</Typography>
-                      <Typography variant="body2" color="text.secondary">
-                        Age: {child.age}
-                      </Typography>
-                    </Box>
-                  </Box>
-                  <IconButton
-                    onClick={(e) => handleMenuClick(e, child.id)}
-                    aria-label="child menu"
-                  >
-                    <MoreVertIcon />
-                  </IconButton>
-                </Box>
-
-                <Box sx={{ mt: 2 }}>
-                  <Typography variant="body2" color="text.secondary">
-                    Reading Level: {child.readingLevel}
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary">
-                    Last Activity: {child.lastActivity}
-                  </Typography>
-                </Box>
-
-                <Button
-                  fullWidth
-                  variant="outlined"
-                  sx={{ mt: 2 }}
-                  onClick={() => handleViewProgress(child.id)}
-                >
-                  View Progress
-                </Button>
-              </CardContent>
-            </Card>
-          </Grid>
-        ))}
+      {/* Quick Stats */}
+      <Grid container spacing={3} sx={{ mb: 4 }}>
+        <Grid item xs={12} md={3}>
+          <Card>
+            <CardContent>
+              <Typography color="textSecondary" gutterBottom>
+                Total Interactions
+              </Typography>
+              <Typography variant="h4">
+                {mockDashboardStats.totalInteractions}
+              </Typography>
+            </CardContent>
+          </Card>
+        </Grid>
+        <Grid item xs={12} md={3}>
+          <Card>
+            <CardContent>
+              <Typography color="textSecondary" gutterBottom>
+                Average Session
+              </Typography>
+              <Typography variant="h4">
+                {mockDashboardStats.averageSessionDuration}m
+              </Typography>
+            </CardContent>
+          </Card>
+        </Grid>
+        <Grid item xs={12} md={3}>
+          <Card>
+            <CardContent>
+              <Typography color="textSecondary" gutterBottom>
+                Average Vocabulary Score
+              </Typography>
+              <Typography variant="h4">
+                {mockAnalytics.overall.averageVocabularyScore.toFixed(1)}
+              </Typography>
+            </CardContent>
+          </Card>
+        </Grid>
+        <Grid item xs={12} md={3}>
+          <Card>
+            <CardContent>
+              <Typography color="textSecondary" gutterBottom>
+                Average Grammar Score
+              </Typography>
+              <Typography variant="h4">
+                {mockAnalytics.overall.averageGrammarScore.toFixed(1)}
+              </Typography>
+            </CardContent>
+          </Card>
+        </Grid>
       </Grid>
 
-      <Menu
-        anchorEl={anchorEl}
-        open={Boolean(anchorEl)}
-        onClose={handleMenuClose}
-      >
-        <MenuItem onClick={() => selectedChild && handleEditChild(selectedChild)}>
-          Edit Profile
-        </MenuItem>
-        <MenuItem onClick={() => selectedChild && handleDeleteChild(selectedChild)}>
-          Delete
-        </MenuItem>
-      </Menu>
+      {/* Charts Section */}
+      <Grid container spacing={3} sx={{ mb: 4 }}>
+        {/* Weekly Activity */}
+        <Grid item xs={12} md={6}>
+          <Paper sx={{ p: 2, height: 400 }}>
+            <Typography variant="h6" gutterBottom>
+              Weekly Activity
+            </Typography>
+            <ResponsiveContainer>
+              <LineChart data={mockDashboardStats.weeklyActivity}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="day" />
+                <YAxis />
+                <Tooltip />
+                <Line
+                  type="monotone"
+                  dataKey="interactions"
+                  stroke={theme.palette.primary.main}
+                  strokeWidth={2}
+                />
+              </LineChart>
+            </ResponsiveContainer>
+          </Paper>
+        </Grid>
+
+        {/* Learning Scores */}
+        <Grid item xs={12} md={6}>
+          <Paper sx={{ p: 2, height: 400 }}>
+            <Typography variant="h6" gutterBottom>
+              Learning Scores by Character
+            </Typography>
+            <ResponsiveContainer>
+              <BarChart data={scoreData}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="name" />
+                <YAxis domain={[0, 10]} />
+                <Tooltip />
+                <Legend />
+                <Bar dataKey="vocabulary" fill={theme.palette.primary.main} name="Vocabulary" />
+                <Bar dataKey="grammar" fill={theme.palette.secondary.main} name="Grammar" />
+              </BarChart>
+            </ResponsiveContainer>
+          </Paper>
+        </Grid>
+      </Grid>
+
+      {/* Character Performance */}
+      <Grid container spacing={3} sx={{ mb: 4 }}>
+        <Grid item xs={12}>
+          <Paper sx={{ p: 2 }}>
+            <Typography variant="h6" gutterBottom>
+              Character Performance
+            </Typography>
+            <Grid container spacing={2}>
+              {Object.entries(mockAnalytics.byCharacter).map(([character, data]) => (
+                <Grid item xs={12} md={3} key={character}>
+                  <Card>
+                    <CardContent>
+                      <Typography variant="h6" gutterBottom>
+                        {character}
+                      </Typography>
+                      <Box sx={{ mb: 2 }}>
+                        <Typography variant="body2" color="textSecondary" gutterBottom>
+                          Messages: {data.totalMessages}
+                        </Typography>
+                        <Typography variant="body2" color="textSecondary" gutterBottom>
+                          Duration: {data.totalDuration} min
+                        </Typography>
+                        <Typography variant="body2" color="textSecondary" gutterBottom>
+                          Vocabulary Score: {data.avgVocabulary.toFixed(1)}
+                        </Typography>
+                        <Typography variant="body2" color="textSecondary">
+                          Grammar Score: {data.avgGrammar.toFixed(1)}
+                        </Typography>
+                      </Box>
+                      <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+                        {data.topics.map((topic, index) => (
+                          <Typography
+                            key={index}
+                            variant="body2"
+                            sx={{
+                              backgroundColor: theme.palette.primary.light,
+                              color: theme.palette.primary.contrastText,
+                              px: 1,
+                              py: 0.5,
+                              borderRadius: 1,
+                            }}
+                          >
+                            {topic}
+                          </Typography>
+                        ))}
+                      </Box>
+                    </CardContent>
+                  </Card>
+                </Grid>
+              ))}
+            </Grid>
+          </Paper>
+        </Grid>
+      </Grid>
+
+      {/* Learning Progress and Milestones */}
+      <Grid container spacing={3}>
+        <Grid item xs={12} md={6}>
+          <Paper sx={{ p: 2 }}>
+            <Typography variant="h6" gutterBottom>
+              Learning Progress
+            </Typography>
+            <Box sx={{ mb: 2 }}>
+              <Typography variant="body2" color="textSecondary" gutterBottom>
+                Overall Progress
+              </Typography>
+              <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                <Box sx={{ width: '100%', mr: 1 }}>
+                  <LinearProgress
+                    variant="determinate"
+                    value={mockDashboardStats.learningProgress}
+                    sx={{ height: 10, borderRadius: 5 }}
+                  />
+                </Box>
+                <Box sx={{ minWidth: 35 }}>
+                  <Typography variant="body2" color="textSecondary">
+                    {`${Math.round(mockDashboardStats.learningProgress)}%`}
+                  </Typography>
+                </Box>
+              </Box>
+            </Box>
+            <Typography variant="h6" gutterBottom sx={{ mt: 3 }}>
+              Recent Topics
+            </Typography>
+            <Timeline>
+              {mockDashboardStats.recentTopics.map((topic, index) => (
+                <TimelineItem key={index}>
+                  <TimelineSeparator>
+                    <TimelineDot color="primary" />
+                    {index < mockDashboardStats.recentTopics.length - 1 && <TimelineConnector />}
+                  </TimelineSeparator>
+                  <TimelineContent>
+                    <Typography>{topic}</Typography>
+                  </TimelineContent>
+                </TimelineItem>
+              ))}
+            </Timeline>
+          </Paper>
+        </Grid>
+
+        <Grid item xs={12} md={6}>
+          <Paper sx={{ p: 2 }}>
+            <Typography variant="h6" gutterBottom>
+              Learning Milestones
+            </Typography>
+            <Grid container spacing={2}>
+              {mockAnalytics.milestones.map((milestone) => (
+                <Grid item xs={12} key={milestone.id}>
+                  <Card>
+                    <CardContent>
+                      <Typography variant="h6" gutterBottom>
+                        {milestone.title}
+                      </Typography>
+                      <Typography variant="body2" color="textSecondary">
+                        {milestone.description}
+                      </Typography>
+                      <Typography variant="caption" color="textSecondary" sx={{ mt: 1, display: 'block' }}>
+                        Achieved on {new Date(milestone.achievedAt).toLocaleDateString()}
+                      </Typography>
+                    </CardContent>
+                  </Card>
+                </Grid>
+              ))}
+            </Grid>
+          </Paper>
+        </Grid>
+      </Grid>
     </Container>
   );
 };

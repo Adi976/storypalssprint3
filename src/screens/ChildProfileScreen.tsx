@@ -2,11 +2,15 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Box, Typography, Avatar, IconButton, Card, CardContent, LinearProgress, Button, CircularProgress } from '@mui/material';
 import { Chat as ChatIcon, Speed as SpeedIcon, Favorite as FavoriteIcon } from '@mui/icons-material';
-import { childApi, ChildData } from '../services/api';
+import { childApi } from '../services/api';
 
-interface ProfileChildData extends ChildData {
+interface ChildData {
   id: string;
+  name: string;
+  age: number;
   reading_level?: string;
+  interests?: string;
+  avatar?: string;
 }
 
 interface ProgressData {
@@ -18,33 +22,23 @@ interface ProgressData {
   total_activities: number;
 }
 
-interface ChildResponse {
-  data: {
-    children: ProfileChildData[];
-  };
-}
-
 const ChildProfileScreen: React.FC = () => {
   const { childId } = useParams<{ childId: string }>();
   const navigate = useNavigate();
-  const [childData, setChildData] = useState<ProfileChildData | null>(null);
+  const [childData, setChildData] = useState<ChildData | null>(null);
   const [progressData, setProgressData] = useState<ProgressData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [childrenResponse, childResponse] = await Promise.all([
-          childApi.getChildren(),
-          childApi.getChild(childId!),
+        const [childResponse, progressResponse] = await Promise.all([
+          childApi.get(childId!),
+          childApi.getProgress(childId!),
         ]);
 
-        const child = (childrenResponse as ChildResponse).data.children.find(
-          (c: ProfileChildData) => c.id.toString() === childId
-        );
-
-        setChildData(child || null);
-        setProgressData(childResponse.data as ProgressData);
+        setChildData(childResponse.data);
+        setProgressData(progressResponse.data);
       } catch (error) {
         console.error('Error fetching child data:', error);
       } finally {
@@ -63,178 +57,102 @@ const ChildProfileScreen: React.FC = () => {
     );
   }
 
+  if (!childData) {
+    return (
+      <Box display="flex" justifyContent="center" alignItems="center" minHeight="100vh">
+        <Typography variant="h6">Child not found</Typography>
+      </Box>
+    );
+  }
+
   return (
-    <Box
-      sx={{
-        minHeight: '100vh',
-        background: 'linear-gradient(135deg, #6200EE 0%, #03DAC6 100%)',
-        p: 3,
-      }}
-    >
-      <Box sx={{ maxWidth: 800, mx: 'auto' }}>
-        {/* Profile Header */}
-        <Card sx={{ mb: 3, bgcolor: 'rgba(255, 255, 255, 0.1)' }}>
-          <CardContent>
-            <Box display="flex" alignItems="center">
-              <Avatar
-                sx={{
-                  width: 80,
-                  height: 80,
-                  bgcolor: 'primary.main',
-                  fontSize: '2rem',
-                }}
-              >
-                {childData?.name[0].toUpperCase()}
-              </Avatar>
-              <Box ml={2} flexGrow={1}>
-                <Typography variant="h5" color="white" fontWeight="bold">
-                  {childData?.name}
+    <Box p={3}>
+      {/* Profile Header */}
+      <Card sx={{ mb: 3 }}>
+        <CardContent>
+          <Box display="flex" alignItems="center" gap={2}>
+            <Avatar
+              src={childData.avatar}
+              alt={childData.name}
+              sx={{ width: 80, height: 80 }}
+            />
+            <Box flex={1}>
+              <Typography variant="h5">{childData.name}</Typography>
+              <Typography variant="body1" color="text.secondary">
+                Age: {childData.age} • Reading Level: {childData.reading_level || 'Not set'}
+              </Typography>
+              {childData.interests && (
+                <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+                  Interests: {childData.interests}
                 </Typography>
-                <Typography color="rgba(255, 255, 255, 0.7)">
-                  Age: {childData?.age}
+              )}
+            </Box>
+          </Box>
+        </CardContent>
+      </Card>
+
+      {/* Progress Section */}
+      {progressData && (
+        <Card>
+          <CardContent>
+            <Typography variant="h6" gutterBottom>
+              Learning Progress
+            </Typography>
+            
+            {/* Stories Progress */}
+            <Box mb={2}>
+              <Box display="flex" justifyContent="space-between" mb={1}>
+                <Typography variant="body2">
+                  Stories Read
+                </Typography>
+                <Typography variant="body2">
+                  {progressData.stories_read}/{progressData.total_stories}
                 </Typography>
               </Box>
-              <IconButton
-                onClick={() => navigate(`/chat/${childId}`)}
-                sx={{ color: 'white' }}
-              >
-                <ChatIcon />
-              </IconButton>
+              <LinearProgress
+                variant="determinate"
+                value={(progressData.stories_read / progressData.total_stories) * 100}
+                sx={{ height: 8, borderRadius: 4 }}
+              />
+            </Box>
+
+            {/* Words Progress */}
+            <Box mb={2}>
+              <Box display="flex" justifyContent="space-between" mb={1}>
+                <Typography variant="body2">
+                  Words Learned
+                </Typography>
+                <Typography variant="body2">
+                  {progressData.words_learned}/{progressData.total_words}
+                </Typography>
+              </Box>
+              <LinearProgress
+                variant="determinate"
+                value={(progressData.words_learned / progressData.total_words) * 100}
+                sx={{ height: 8, borderRadius: 4 }}
+              />
+            </Box>
+
+            {/* Activities Progress */}
+            <Box mb={2}>
+              <Box display="flex" justifyContent="space-between" mb={1}>
+                <Typography variant="body2">
+                  Activities Completed
+                </Typography>
+                <Typography variant="body2">
+                  {progressData.activities_completed}/{progressData.total_activities}
+                </Typography>
+              </Box>
+              <LinearProgress
+                variant="determinate"
+                value={(progressData.activities_completed / progressData.total_activities) * 100}
+                sx={{ height: 8, borderRadius: 4 }}
+              />
             </Box>
           </CardContent>
         </Card>
-
-        {/* Progress Section */}
-        <Typography variant="h6" color="white" mb={2}>
-          Learning Progress
-        </Typography>
-
-        {progressData ? (
-          <>
-            <ProgressCard
-              title="Stories Read"
-              value={progressData.stories_read}
-              total={progressData.total_stories}
-              icon={<SpeedIcon />}
-            />
-            <ProgressCard
-              title="Words Learned"
-              value={progressData.words_learned}
-              total={progressData.total_words}
-              icon={<FavoriteIcon />}
-            />
-            <ProgressCard
-              title="Activities Completed"
-              value={progressData.activities_completed}
-              total={progressData.total_activities}
-              icon={<SpeedIcon />}
-            />
-          </>
-        ) : (
-          <Card sx={{ bgcolor: 'rgba(255, 255, 255, 0.1)' }}>
-            <CardContent>
-              <Typography color="white" textAlign="center">
-                No progress data available yet.
-              </Typography>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Settings Section */}
-        <Typography variant="h6" color="white" mt={4} mb={2}>
-          Settings
-        </Typography>
-
-        <SettingsCard
-          title="Reading Level"
-          value={childData?.reading_level || 'Beginner'}
-          icon={<SpeedIcon />}
-          onTap={() => {/* TODO: Implement reading level adjustment */}}
-        />
-        <SettingsCard
-          title="Interests"
-          value={childData?.interests || 'Not set'}
-          icon={<FavoriteIcon />}
-          onTap={() => {/* TODO: Implement interests management */}}
-        />
-      </Box>
+      )}
     </Box>
-  );
-};
-
-interface ProgressCardProps {
-  title: string;
-  value: number;
-  total: number;
-  icon: React.ReactNode;
-}
-
-const ProgressCard: React.FC<ProgressCardProps> = ({ title, value, total, icon }) => {
-  const progress = total > 0 ? value / total : 0;
-
-  return (
-    <Card sx={{ mb: 2, bgcolor: 'rgba(255, 255, 255, 0.1)' }}>
-      <CardContent>
-        <Box display="flex" alignItems="center" mb={1}>
-          {icon}
-          <Typography ml={1} color="white" fontWeight="bold">
-            {title}
-          </Typography>
-        </Box>
-        <LinearProgress
-          variant="determinate"
-          value={progress * 100}
-          sx={{
-            height: 8,
-            borderRadius: 4,
-            bgcolor: 'rgba(255, 255, 255, 0.1)',
-            '& .MuiLinearProgress-bar': {
-              bgcolor: 'primary.main',
-            },
-          }}
-        />
-        <Typography mt={1} color="rgba(255, 255, 255, 0.7)" fontSize="0.875rem">
-          {value} / {total}
-        </Typography>
-      </CardContent>
-    </Card>
-  );
-};
-
-interface SettingsCardProps {
-  title: string;
-  value: string;
-  icon: React.ReactNode;
-  onTap: () => void;
-}
-
-const SettingsCard: React.FC<SettingsCardProps> = ({ title, value, icon, onTap }) => {
-  const displayValue = title === 'Interests' ? value.split(',').map(i => i.trim()).join(', ') : value;
-  
-  return (
-    <Card
-      sx={{
-        mb: 2,
-        bgcolor: 'rgba(255, 255, 255, 0.1)',
-        '&:hover': { bgcolor: 'rgba(255, 255, 255, 0.2)' },
-      }}
-      onClick={onTap}
-    >
-      <CardContent>
-        <Box display="flex" alignItems="center">
-          {icon}
-          <Box ml={2} flexGrow={1}>
-            <Typography color="white" fontWeight="bold">
-              {title}
-            </Typography>
-            <Typography color="rgba(255, 255, 255, 0.7)" fontSize="0.875rem">
-              {displayValue}
-            </Typography>
-          </Box>
-          <Button color="primary">Edit</Button>
-        </Box>
-      </CardContent>
-    </Card>
   );
 };
 

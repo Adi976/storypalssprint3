@@ -21,6 +21,7 @@ import {
   useMediaQuery,
   Alert,
   CircularProgress,
+  Skeleton,
 } from '@mui/material';
 import {
   Timeline as TimelineIcon,
@@ -35,7 +36,9 @@ import {
   AccessTime as AccessTimeIcon,
 } from '@mui/icons-material';
 import { styled } from '@mui/material/styles';
+import { useNavigate } from 'react-router-dom';
 import { analytics, users } from '../services/api';
+import { authService } from '../services/auth';
 
 // Color palette
 const colors = {
@@ -83,6 +86,7 @@ interface ChildStats {
 }
 
 interface Story {
+  id: number;
   title: string;
   character: string;
   date: string;
@@ -93,8 +97,27 @@ interface LearningProgress {
   progress: number;
 }
 
+const LoadingSkeleton = () => (
+  <Grid container spacing={4}>
+    <Grid item xs={12}>
+      <Skeleton variant="rectangular" height={60} sx={{ borderRadius: 2 }} />
+    </Grid>
+    {[1, 2, 3, 4].map((item) => (
+      <Grid item xs={12} sm={6} md={3} key={item}>
+        <Skeleton variant="rectangular" height={100} sx={{ borderRadius: 2 }} />
+      </Grid>
+    ))}
+    {[1, 2].map((item) => (
+      <Grid item xs={12} md={6} key={`card-${item}`}>
+        <Skeleton variant="rectangular" height={300} sx={{ borderRadius: 2 }} />
+      </Grid>
+    ))}
+  </Grid>
+);
+
 const ParentDashboard: React.FC = () => {
   const theme = useTheme();
+  const navigate = useNavigate();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -110,6 +133,11 @@ const ParentDashboard: React.FC = () => {
 
   useEffect(() => {
     const fetchData = async () => {
+      if (!authService.isAuthenticated()) {
+        navigate('/auth');
+        return;
+      }
+
       try {
         setLoading(true);
         setError('');
@@ -142,6 +170,8 @@ const ParentDashboard: React.FC = () => {
 
           // Update recent stories
           setRecentStories(progressData.recentStories || []);
+        } else {
+          setError('No children found. Please add a child profile first.');
         }
       } catch (error) {
         const apiError = error as { response?: { data?: { message?: string } } };
@@ -152,20 +182,48 @@ const ParentDashboard: React.FC = () => {
     };
 
     fetchData();
-  }, []);
+  }, [navigate]);
 
   if (loading) {
     return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh' }}>
-        <CircularProgress />
+      <Box sx={{ py: 4, backgroundColor: colors.light, minHeight: '100vh' }}>
+        <Container maxWidth="lg">
+          <LoadingSkeleton />
+        </Container>
       </Box>
     );
   }
 
   if (error) {
     return (
-      <Box sx={{ p: 3 }}>
-        <Alert severity="error">{error}</Alert>
+      <Box sx={{ py: 4, backgroundColor: colors.light, minHeight: '100vh' }}>
+        <Container maxWidth="lg">
+          <Alert 
+            severity="error" 
+            sx={{ 
+              mb: 2,
+              '& .MuiAlert-icon': {
+                color: colors.primary,
+              },
+            }}
+          >
+            {error}
+          </Alert>
+          {error.includes('No children found') && (
+            <Button
+              variant="contained"
+              onClick={() => navigate('/child-profile')}
+              sx={{
+                backgroundColor: colors.primary,
+                '&:hover': {
+                  backgroundColor: colors.dark,
+                },
+              }}
+            >
+              Add Child Profile
+            </Button>
+          )}
+        </Container>
       </Box>
     );
   }
@@ -192,9 +250,9 @@ const ParentDashboard: React.FC = () => {
           </Grid>
 
           {/* Stats Overview */}
-          <Grid item xs={12} md={8}>
+          <Grid item xs={12}>
             <Grid container spacing={3}>
-              <Grid item xs={12} sm={6}>
+              <Grid item xs={12} sm={6} md={3}>
                 <StatCard>
                   <Avatar sx={{ bgcolor: colors.primary }}>
                     <BookIcon />
@@ -205,7 +263,7 @@ const ParentDashboard: React.FC = () => {
                   </Box>
                 </StatCard>
               </Grid>
-              <Grid item xs={12} sm={6}>
+              <Grid item xs={12} sm={6} md={3}>
                 <StatCard>
                   <Avatar sx={{ bgcolor: colors.accent }}>
                     <AccessTimeIcon />
@@ -216,7 +274,7 @@ const ParentDashboard: React.FC = () => {
                   </Box>
                 </StatCard>
               </Grid>
-              <Grid item xs={12} sm={6}>
+              <Grid item xs={12} sm={6} md={3}>
                 <StatCard>
                   <Avatar sx={{ bgcolor: colors.secondary }}>
                     <SchoolIcon />
@@ -227,7 +285,7 @@ const ParentDashboard: React.FC = () => {
                   </Box>
                 </StatCard>
               </Grid>
-              <Grid item xs={12} sm={6}>
+              <Grid item xs={12} sm={6} md={3}>
                 <StatCard>
                   <Avatar sx={{ bgcolor: colors.star }}>
                     <EmojiEventsIcon />
@@ -248,19 +306,19 @@ const ParentDashboard: React.FC = () => {
                 Quick Actions
               </Typography>
               <List>
-                <ListItem button>
+                <ListItem button onClick={() => navigate('/progress-report')}>
                   <ListItemIcon>
                     <TimelineIcon sx={{ color: colors.primary }} />
                   </ListItemIcon>
                   <ListItemText primary="View Progress Report" />
                 </ListItem>
-                <ListItem button>
+                <ListItem button onClick={() => navigate('/safety-settings')}>
                   <ListItemIcon>
                     <SecurityIcon sx={{ color: colors.primary }} />
                   </ListItemIcon>
                   <ListItemText primary="Safety Settings" />
                 </ListItem>
-                <ListItem button>
+                <ListItem button onClick={() => navigate('/stories')}>
                   <ListItemIcon>
                     <BookIcon sx={{ color: colors.primary }} />
                   </ListItemIcon>
@@ -306,7 +364,7 @@ const ParentDashboard: React.FC = () => {
           </Grid>
 
           {/* Recent Stories */}
-          <Grid item xs={12} md={4}>
+          <Grid item xs={12}>
             <DashboardCard>
               <Typography variant="h6" sx={{ mb: 2, color: colors.primary }}>
                 Recent Stories
@@ -328,10 +386,19 @@ const ParentDashboard: React.FC = () => {
                     {index < recentStories.length - 1 && <Divider />}
                   </React.Fragment>
                 ))}
+                {recentStories.length === 0 && (
+                  <ListItem>
+                    <ListItemText
+                      primary="No stories yet"
+                      secondary="Start creating stories with your child!"
+                    />
+                  </ListItem>
+                )}
               </List>
               <Button
                 variant="outlined"
                 fullWidth
+                onClick={() => navigate('/stories')}
                 sx={{
                   mt: 2,
                   borderColor: colors.primary,

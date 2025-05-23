@@ -1,167 +1,254 @@
 import React, { useState, useEffect } from 'react';
-import { AppBar, Toolbar, Button, Box, IconButton, styled, useTheme, useMediaQuery, Drawer, List, ListItem, ListItemText, Divider, ListItemIcon, Avatar } from '@mui/material';
 import { useNavigate, useLocation } from 'react-router-dom';
 import {
-  Menu as MenuIcon,
-  Home as HomeIcon,
-  Person as PersonIcon,
-  Book as BookIcon,
-  Dashboard as DashboardIcon,
-  School as SchoolIcon,
-} from '@mui/icons-material';
-//import LogoImage from '../assets/images/captain_leo.png';
-import LogoImage from '@/assets/images/captain_leo.png';
-import { colors } from '../theme';
+  AppBar,
+  Box,
+  Toolbar,
+  IconButton,
+  Typography,
+  Menu,
+  Container,
+  Avatar,
+  Button,
+  Tooltip,
+  MenuItem,
+  useScrollTrigger,
+} from '@mui/material';
+import MenuIcon from '@mui/icons-material/Menu';
+import DashboardIcon from '@mui/icons-material/Dashboard';
+import BookIcon from '@mui/icons-material/Book';
+import PersonIcon from '@mui/icons-material/Person';
+import LogoutIcon from '@mui/icons-material/Logout';
+import { authService } from '../services/auth';
+import { theme } from '../theme';
 
-const NavContainer = styled(AppBar)(({ theme }) => ({
-  backgroundColor: 'transparent',
-  boxShadow: 'none',
-  position: 'fixed',
-  transition: 'all 0.3s ease',
-  '&.scrolled': {
-    backgroundColor: colors.cloud,
-    boxShadow: '0 4px 20px rgba(0, 0, 0, 0.1)',
-  },
-}));
+interface NavigationProps {
+  children: React.ReactNode;
+}
 
-const Logo = styled('img')({
-  height: 40,
-  marginRight: 16,
-});
-
-const NavButton = styled(Button)(({ theme }) => ({
-  color: colors.dark,
-  marginLeft: theme.spacing(2),
-  '&:hover': {
-    backgroundColor: 'rgba(123, 94, 167, 0.1)',
-  },
-  '&.active': {
-    color: colors.primary,
-    backgroundColor: 'rgba(123, 94, 167, 0.1)',
-  },
-}));
-
-const Navigation: React.FC = () => {
-  const [mobileOpen, setMobileOpen] = useState(false);
-  const [scrolled, setScrolled] = useState(false);
+const Navigation: React.FC<NavigationProps> = ({ children }) => {
   const navigate = useNavigate();
   const location = useLocation();
-  const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
-  const isAuthenticated = localStorage.getItem('access_token') !== null;
+  const [anchorElNav, setAnchorElNav] = useState<null | HTMLElement>(null);
+  const [anchorElUser, setAnchorElUser] = useState<null | HTMLElement>(null);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+
+  const trigger = useScrollTrigger({
+    disableHysteresis: true,
+    threshold: 0,
+  });
 
   useEffect(() => {
-    const handleScroll = () => {
-      setScrolled(window.scrollY > 50);
-    };
+    setIsAuthenticated(authService.isAuthenticated());
+  }, [location.pathname]);
 
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
-
-  const handleDrawerToggle = () => {
-    setMobileOpen(!mobileOpen);
+  const handleOpenNavMenu = (event: React.MouseEvent<HTMLElement>) => {
+    setAnchorElNav(event.currentTarget);
   };
 
-  const handleLogout = () => {
-    localStorage.removeItem('access_token');
-    window.location.href = '/';
+  const handleOpenUserMenu = (event: React.MouseEvent<HTMLElement>) => {
+    setAnchorElUser(event.currentTarget);
   };
 
-  const isActive = (path: string) => {
-    return location.pathname === path;
+  const handleCloseNavMenu = () => {
+    setAnchorElNav(null);
+  };
+
+  const handleCloseUserMenu = () => {
+    setAnchorElUser(null);
+  };
+
+  const handleLogout = async () => {
+    await authService.logout();
+    handleCloseUserMenu();
+    navigate('/auth');
   };
 
   const menuItems = [
-    { text: 'Home', icon: <HomeIcon />, path: '/' },
-    { text: 'Dashboard', icon: <DashboardIcon />, path: '/dashboard' },
-    { text: 'Stories', icon: <BookIcon />, path: '/story' },
-    { text: 'Parent Dashboard', icon: <SchoolIcon />, path: '/parent-dashboard' },
+    { label: 'Dashboard', path: '/dashboard', icon: <DashboardIcon /> },
+    { label: 'Stories', path: '/stories', icon: <BookIcon /> },
   ];
 
-  const drawer = (
-    <Box sx={{ width: 280, pt: 2 }}>
-      <List>
-        {menuItems.map((item) => (
-          <ListItem
-            button
-            key={item.text}
-            onClick={() => {
-              navigate(item.path);
-              setMobileOpen(false);
-            }}
-            sx={{
-              backgroundColor: isActive(item.path) ? 'rgba(123, 94, 167, 0.1)' : 'transparent',
-              color: isActive(item.path) ? colors.primary : colors.dark,
-            }}
-          >
-            <ListItemIcon sx={{ color: 'inherit' }}>{item.icon}</ListItemIcon>
-            <ListItemText primary={item.text} />
-          </ListItem>
-        ))}
-      </List>
-    </Box>
-  );
+  const userMenuItems = [
+    { label: 'Profile', icon: <PersonIcon />, action: () => navigate('/profile') },
+    { label: 'Logout', icon: <LogoutIcon />, action: handleLogout },
+  ];
+
+  const user = authService.getUser();
+
+  // Don't show navigation on auth or landing pages
+  const isPublicPage = location.pathname === '/' || location.pathname === '/auth';
+
+  if (isPublicPage) {
+    return <>{children}</>;
+  }
 
   return (
-    <>
-      <NavContainer className={scrolled ? 'scrolled' : ''}>
-        <Toolbar>
-          <Logo src={LogoImage} alt="StoryPals Logo" />
-          {isMobile ? (
-            <IconButton
-              color="inherit"
-              aria-label="open drawer"
-              edge="start"
-              onClick={handleDrawerToggle}
-              sx={{ ml: 'auto' }}
-            >
-              <MenuIcon />
-            </IconButton>
-          ) : (
-            <Box sx={{ display: 'flex', alignItems: 'center', ml: 'auto' }}>
-              {menuItems.map((item) => (
-                <NavButton
-                  key={item.text}
-                  startIcon={item.icon}
-                  onClick={() => navigate(item.path)}
-                  className={isActive(item.path) ? 'active' : ''}
-                >
-                  {item.text}
-                </NavButton>
-              ))}
-              <Avatar
-                sx={{
-                  ml: 2,
-                  bgcolor: colors.primary,
-                  cursor: 'pointer',
-                }}
-                onClick={() => navigate('/auth')}
-              >
-                <PersonIcon />
-              </Avatar>
-            </Box>
-          )}
-        </Toolbar>
-      </NavContainer>
-      <Drawer
-        variant="temporary"
-        anchor="right"
-        open={mobileOpen}
-        onClose={handleDrawerToggle}
-        ModalProps={{
-          keepMounted: true,
-        }}
+    <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
+      <AppBar
+        position="fixed"
         sx={{
-          '& .MuiDrawer-paper': {
-            width: 280,
-            boxSizing: 'border-box',
-          },
+          backgroundColor: trigger ? 'rgba(255, 255, 255, 0.9)' : 'transparent',
+          boxShadow: trigger ? 1 : 'none',
+          transition: 'all 0.3s ease',
         }}
       >
-        {drawer}
-      </Drawer>
-    </>
+        <Container maxWidth="xl">
+          <Toolbar disableGutters>
+            {/* Logo for larger screens */}
+            <Typography
+              variant="h6"
+              noWrap
+              component="a"
+              href="/"
+              sx={{
+                mr: 2,
+                display: { xs: 'none', md: 'flex' },
+                fontWeight: 700,
+                color: 'inherit',
+                textDecoration: 'none',
+              }}
+            >
+              StoryPals
+            </Typography>
+
+            {/* Mobile menu */}
+            <Box sx={{ flexGrow: 1, display: { xs: 'flex', md: 'none' } }}>
+              <IconButton
+                size="large"
+                aria-label="menu"
+                aria-controls="menu-appbar"
+                aria-haspopup="true"
+                onClick={handleOpenNavMenu}
+                color="inherit"
+              >
+                <MenuIcon />
+              </IconButton>
+              <Menu
+                id="menu-appbar"
+                anchorEl={anchorElNav}
+                anchorOrigin={{
+                  vertical: 'bottom',
+                  horizontal: 'left',
+                }}
+                keepMounted
+                transformOrigin={{
+                  vertical: 'top',
+                  horizontal: 'left',
+                }}
+                open={Boolean(anchorElNav)}
+                onClose={handleCloseNavMenu}
+                sx={{
+                  display: { xs: 'block', md: 'none' },
+                }}
+              >
+                {menuItems.map((item) => (
+                  <MenuItem
+                    key={item.label}
+                    onClick={() => {
+                      handleCloseNavMenu();
+                      navigate(item.path);
+                    }}
+                  >
+                    <Typography textAlign="center">{item.label}</Typography>
+                  </MenuItem>
+                ))}
+              </Menu>
+            </Box>
+
+            {/* Logo for mobile screens */}
+            <Typography
+              variant="h5"
+              noWrap
+              component="a"
+              href="/"
+              sx={{
+                mr: 2,
+                display: { xs: 'flex', md: 'none' },
+                flexGrow: 1,
+                fontWeight: 700,
+                color: 'inherit',
+                textDecoration: 'none',
+              }}
+            >
+              StoryPals
+            </Typography>
+
+            {/* Desktop menu */}
+            <Box sx={{ flexGrow: 1, display: { xs: 'none', md: 'flex' } }}>
+              {menuItems.map((item) => (
+                <Button
+                  key={item.label}
+                  onClick={() => navigate(item.path)}
+                  sx={{
+                    my: 2,
+                    color: 'inherit',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 1,
+                  }}
+                >
+                  {item.icon}
+                  {item.label}
+                </Button>
+              ))}
+            </Box>
+
+            {/* User menu */}
+            {isAuthenticated && (
+              <Box sx={{ flexGrow: 0 }}>
+                <Tooltip title="Open settings">
+                  <IconButton onClick={handleOpenUserMenu} sx={{ p: 0 }}>
+                    <Avatar alt={user?.name || 'User'} src={user?.avatar} />
+                  </IconButton>
+                </Tooltip>
+                <Menu
+                  sx={{ mt: '45px' }}
+                  id="menu-appbar"
+                  anchorEl={anchorElUser}
+                  anchorOrigin={{
+                    vertical: 'top',
+                    horizontal: 'right',
+                  }}
+                  keepMounted
+                  transformOrigin={{
+                    vertical: 'top',
+                    horizontal: 'right',
+                  }}
+                  open={Boolean(anchorElUser)}
+                  onClose={handleCloseUserMenu}
+                >
+                  {userMenuItems.map((item) => (
+                    <MenuItem
+                      key={item.label}
+                      onClick={() => {
+                        handleCloseUserMenu();
+                        item.action();
+                      }}
+                    >
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        {item.icon}
+                        <Typography textAlign="center">{item.label}</Typography>
+                      </Box>
+                    </MenuItem>
+                  ))}
+                </Menu>
+              </Box>
+            )}
+          </Toolbar>
+        </Container>
+      </AppBar>
+      <Box
+        component="main"
+        sx={{
+          flexGrow: 1,
+          pt: { xs: 8, sm: 9 },
+          backgroundColor: theme.palette.background.default,
+        }}
+      >
+        {children}
+      </Box>
+    </Box>
   );
 };
 
