@@ -16,13 +16,18 @@ export const colors = {
 export const theme = createTheme({
   palette: {
     primary: {
-      main: colors.primary,
+      main: '#2196f3',
     },
     secondary: {
-      main: colors.secondary,
+      main: '#f50057',
     },
     background: {
-      default: colors.light,
+      default: '#f5f5f5',
+      paper: '#ffffff',
+    },
+    text: {
+      primary: colors.dark,
+      secondary: colors.dark,
     },
   },
   typography: {
@@ -50,6 +55,45 @@ export const theme = createTheme({
     borderRadius: 12,
   },
   components: {
+    MuiCssBaseline: {
+      styleOverrides: {
+        body: {
+          backgroundColor: colors.light,
+          minHeight: '100vh',
+          margin: 0,
+          padding: 0,
+          overflowX: 'hidden',
+          position: 'relative',
+        },
+        '#root': {
+          minHeight: '100vh',
+          display: 'flex',
+          flexDirection: 'column',
+          backgroundColor: colors.light,
+          position: 'relative',
+          width: '100%',
+          overflow: 'hidden',
+        },
+        '*': {
+          boxSizing: 'border-box',
+        },
+        '@media (forced-colors: active)': {
+          // High contrast mode styles
+          '.MuiPaper-root': {
+            border: '1px solid CanvasText',
+          },
+          '.MuiCard-root': {
+            border: '1px solid CanvasText',
+          },
+          '.MuiButton-root': {
+            border: '1px solid CanvasText',
+          },
+          '.MuiTextField-root': {
+            border: '1px solid CanvasText',
+          },
+        },
+      },
+    },
     MuiButton: {
       styleOverrides: {
         root: {
@@ -64,6 +108,44 @@ export const theme = createTheme({
         root: {
           borderRadius: 20,
           boxShadow: '0 10px 30px rgba(0, 0, 0, 0.05)',
+          backgroundColor: colors.cloud,
+        },
+      },
+    },
+    MuiAppBar: {
+      styleOverrides: {
+        root: {
+          backgroundColor: colors.cloud,
+          color: colors.dark,
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          zIndex: 1200,
+        },
+      },
+    },
+    MuiContainer: {
+      styleOverrides: {
+        root: {
+          paddingTop: '24px',
+          paddingBottom: '24px',
+          position: 'relative',
+          zIndex: 1,
+        },
+      },
+    },
+    MuiPaper: {
+      styleOverrides: {
+        root: {
+          backgroundColor: colors.cloud,
+        },
+      },
+    },
+    MuiToolbar: {
+      styleOverrides: {
+        root: {
+          minHeight: '64px !important',
         },
       },
     },
