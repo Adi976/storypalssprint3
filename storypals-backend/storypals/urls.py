@@ -19,14 +19,16 @@ from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
 from rest_framework.routers import DefaultRouter
-from users.views import UserViewSet, ChildViewSet
 from chat.views import ChatViewSet, MessageViewSet, StoryViewSet, PublicChatView
 from analytics.views import LearningProgressViewSet, ParentReviewViewSet
 from devices.views import DeviceViewSet
+from rest_framework_simplejwt.views import (
+    TokenRefreshView,
+    TokenVerifyView,
+)
+from auth.views import CustomTokenObtainPairView
 
 router = DefaultRouter()
-router.register(r'users', UserViewSet)
-router.register(r'children', ChildViewSet, basename='child')
 router.register(r'chats', ChatViewSet, basename='chat')
 router.register(r'messages', MessageViewSet, basename='message')
 router.register(r'stories', StoryViewSet)
@@ -38,5 +40,14 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('api/', include(router.urls)),
     path('api/auth/', include('auth.urls')),
+    path('api/users/', include('users.urls')),
+    path('api/chat/', include('chat.urls')),
+    path('api/analytics/', include('analytics.urls')),
     path('api/public-chat/', PublicChatView.as_view(), name='public-chat'),
-] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+    path('api/token/', CustomTokenObtainPairView.as_view(), name='token_obtain_pair'),
+    path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
+    path('api/token/verify/', TokenVerifyView.as_view(), name='token_verify'),
+]
+
+if settings.DEBUG:
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

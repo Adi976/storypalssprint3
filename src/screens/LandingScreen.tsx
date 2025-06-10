@@ -561,8 +561,8 @@ const LandingScreen: React.FC = () => {
             <Grid container spacing={4} justifyContent="center">
               {[
                 { name: 'Luna', image: LunaImage, description: 'The Star Fairy', color: '#7b5ea7' },
-                { name: 'Gogo', image: GogoImage, description: 'The Adventure Guide', color: '#ff9e6d' },
-                { name: 'Dodo', image: DodoImage, description: 'The Wise Owl', color: '#4a90e2' },
+                { name: 'Gogo', image: GogoImage, description: 'The Wise Grandma', color: '#ff9e6d' },
+                { name: 'Dodo', image: DodoImage, description: 'The Adventure Monkey', color: '#4a90e2' },
                 { name: 'Captain Leo', image: CaptainLeoImage, description: 'The Brave Explorer', color: '#50c878' }
               ].map((character, index) => (
                 <Grid item xs={12} sm={6} md={3} key={character.name}>

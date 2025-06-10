@@ -1,0 +1,13 @@
+/* Fix for text-size-adjust compatibility */
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+/* Additional responsive fixes */
+@media screen and (max-width: 800px) {
+  body {
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+  }
+} 
